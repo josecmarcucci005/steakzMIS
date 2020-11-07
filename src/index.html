@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Steakz Manager</title>
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css'/>
+    <link rel='stylesheet' href='./dashboard.css'/>
+
+</head>
+<body>
+  <nav class="navbar navbar-inverse navbar-static-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">Settings</a></li>
+            <li><a href="#">Profile</a></li>
+            <li><a href="#">Help</a></li>
+          </ul>
+          <div class="nav navbar-nav navbar-left"><img src="http://raw.githubusercontent.com/josecmarcucci005/ecommerce_pictures/master/steakz_logo.png"></div>
+        </div>
+      </div>
+</nav>
+
+<div class="container-fluid">
+  <div class="row">
+  	<div class="col-sm-3 sidebar">
+          <ul class="nav nav-pills nav-stacked">
+            <li class="active"><a href="#">Foods <span class="sr-only">(current)</span></a></li>
+            <li><a href="#">Reports</a></li>
+            <li><a href="#">Analytics</a></li>
+            <li><a href="#">Export</a></li>
+          </ul>
+    </div>
+    <div class="col-sm-9 main">
+	  <main id="app">
+	    <router-view></router-view>
+	  </main>
+	</div>
+  </div>
+</div>
+
+
+<template id="food">
+<div>
+  <h2>{{ food.name }}</h2>
+  <b>Description: </b>
+  <div>{{ food.description }}</div>
+  <b>Price:</b>
+  <div>{{ food.price }}<span class="glyphicon glyphicon-euro"></span></div>
+  <br/>
+  <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
+  <a><router-link to="/">Back to food list</router-link></a>
+</div>
+</template>
+
+<template id="food-list"><div>
+  <div class="actions">
+    <a class="btn btn-default" >
+	  <router-link :to="{path: '/add-food'}">
+      <span class="glyphicon glyphicon-plus"></span>
+      Add food
+	  </router-link>
+    </a>
+  </div>
+  <div class="filters row">
+    <div class="form-group col-sm-3">
+      <label for="search-element">Food name</label>
+      <input v-model="searchKey" class="form-control" id="search-element" requred/>
+    </div>
+  </div>
+  <vue-simple-spinner v-if='loadingList'></vue-simple-spinner>
+  <table class="table" v-else>
+    <thead>
+    <tr>
+      <th>Name</th>
+      <th>Description</th>
+      <th>Price</th>
+      <th class="col-sm-2">Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+
+    <tr v-for="food in filteredFoods">
+      <td>
+        <a><router-link :to="{name: 'food', params: {food_id: food.id}}">{{ food.name }}</router-link></a>
+      </td>
+      <td>{{ food.description }}</td>
+      <td>
+        {{ food.price }}
+        <span class="glyphicon glyphicon-euro" aria-hidden="true"></span>
+      </td>
+      <td>
+	    <a class="btn btn-warning btn-xs"><router-link :to="{name: 'food-edit', params: {food_id: food.id}}">Edit</router-link></a>
+        <a class="btn btn-danger btn-xs"><router-link :to="{name: 'food-delete', params: {food_id: food.id}}">Delete</router-link></a>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div></template>
+
+
+<template id="add-food">
+  <div>
+  <h2>Add new food</h2>
+    <div class="form-group">
+      <label for="add-name">Name</label>
+      <input class="form-control" id="add-name" v-model="food.name" required/>
+    </div>
+    <div class="form-group">
+      <label for="add-description">Description</label>
+      <textarea class="form-control" id="add-description" rows="10" v-model="food.description"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="add-price">Price, <span class="glyphicon glyphicon-euro"></span></label>
+      <input type="number" class="form-control" id="add-price" v-model="food.price"/>
+    </div>
+    <button type="button" class="btn btn-primary" v-on:click="createFood">Create</button>
+    <a class="btn btn-default"><router-link to="/">Cancel</router-link></a>
+  </div>
+</template>
+
+<template id="food-edit">
+  <div>
+  <h2>Edit food</h2>
+  <form v-on:submit="updateFood">
+    <div class="form-group">
+      <label for="edit-name">Name</label>
+      <input class="form-control" id="edit-name" v-model="food.name" required/>
+    </div>
+    <div class="form-group">
+      <label for="edit-description">Description</label>
+      <textarea class="form-control" id="edit-description" rows="3" v-model="food.description"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="edit-price">Price, <span class="glyphicon glyphicon-euro"></span></label>
+      <input type="number" class="form-control" id="edit-price" v-model="food.price"/>
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a class="btn btn-default"><router-link to="/">Cancel</router-link></a>
+  </form>
+  </div>
+</template>
+
+<template id="food-delete">
+  <div>
+  <h2>Delete food {{ food.name }}</h2>
+  <form v-on:submit="deleteFood">
+    <p>The action cannot be undone.</p>
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a class="btn btn-default"><router-link to="/">Cancel</router-link></a>
+  </form>
+  </div>
+</template>
+
+<!-- partial -->
+<!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="../../dist/js/bootstrap.min.js"></script>
+    <!-- Just to make our placeholder images work. Don't actually copy the next line! -->
+    <script src="../../assets/js/vendor/holder.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
+<script src='https://unpkg.com/vue@2.6.12/dist/vue.js'></script>
+<script src='https://unpkg.com/vue-router@3.4.9/dist/vue-router.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.15.3/axios.min.js'></script>
+<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
+<script src='https://unpkg.com/vuetify@0.16.9/dist/vuetify.min.js'></script>
+<script src='https://unpkg.com/vue-simple-spinner@1.2.10/dist/vue-simple-spinner.js'></script>
+<script  src="./manager.js"></script>
+
+</body>
+</html>
