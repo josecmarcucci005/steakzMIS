@@ -8,10 +8,13 @@ var foods = [
 */
 
 var foods = [];
+var c = {};
 
 var urlFood = 'https://steakz-0eef.restdb.io/rest/food';
+var urlRest = 'https://steakz-0eef.restdb.io/rest/restaurant';
 
 var loadingList = true;
+var loadingRestList = true;
 
 function findFood(foodId) {
   return foods[findFoodKey(foodId)];
@@ -42,7 +45,7 @@ function makeAxiosCallGet(url, temp, func) {
         func(response, temp)
       })
       .catch(function(error) {
-        //console.log(error);
+        console.log(error);
       })
   } catch (error) {
     console.log(error)
@@ -67,7 +70,7 @@ function makeAxiosCallPut(url, obj) {
         //console.log(JSON.stringify(response));
       })
       .catch(function(error) {
-        //console.log(error);
+        console.log(error);
       })
   } catch (error) {
     console.log(error)
@@ -181,7 +184,7 @@ var FoodEdit = Vue.extend({
       };
 
       makeAxiosCallPut(urlFood, food);
-      router.push('/');
+      router.push('/food');
     }
   }
 });
@@ -197,7 +200,7 @@ var FoodDelete = Vue.extend({
     deleteFood: function() {
       foods.splice(findFoodKey(this.$route.params.food_id), 1);
       makeAxiosCallDelete(urlFood, this.food);
-      router.push('/');
+      router.push('/food');
     }
   }
 });
@@ -222,15 +225,36 @@ var AddFood = Vue.extend({
 
         foods.push(food);
 
-        router.push('/');
+        router.push('/food');
       });
     }
   }
 });
 
+var Rest = Vue.extend({
+  template: '#restaurant',
+  data: function() {
+    return {
+      restaurant: restaurant,
+      searchKey: '',
+      loadingRestList: true
+    };
+  },
+  mounted: function() {
+      makeAxiosCallGet(urlRest, this, function(response, temp) {
+
+        temp.loadingRestList = false;
+        temp.restaurant = response.data[0];
+        restaurant = temp.restaurant;
+
+        console.log(JSON.stringify(restaurant));
+      });
+  }
+});
+
 var router = new VueRouter({
   routes: [{
-      path: '/',
+      path: '/food',
       component: List
     },
     {
@@ -251,6 +275,10 @@ var router = new VueRouter({
       path: '/food/:food_id/delete',
       component: FoodDelete,
       name: 'food-delete'
+    }, 
+    {
+      path: '/restaurant',
+      component: Rest
     }
   ]
 });

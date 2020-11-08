@@ -47,7 +47,6 @@
   </div>
 </div>
 
-
 <template id="food">
 <div>
   <h2>{{ food.name }}</h2>
@@ -57,7 +56,7 @@
   <div>{{ food.price }}<span class="glyphicon glyphicon-euro"></span></div>
   <br/>
   <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
-  <a><router-link to="/">Back to food list</router-link></a>
+  <a><router-link to="/food">Back to food list</router-link></a>
 </div>
 </template>
 
@@ -123,7 +122,7 @@
       <input type="number" class="form-control" id="add-price" v-model="food.price"/>
     </div>
     <button type="button" class="btn btn-primary" v-on:click="createFood">Create</button>
-    <a class="btn btn-default"><router-link to="/">Cancel</router-link></a>
+    <a class="btn btn-default"><router-link to="/food">Cancel</router-link></a>
   </div>
 </template>
 
@@ -144,7 +143,7 @@
       <input type="number" class="form-control" id="edit-price" v-model="food.price"/>
     </div>
     <button type="submit" class="btn btn-primary">Save</button>
-    <a class="btn btn-default"><router-link to="/">Cancel</router-link></a>
+    <a class="btn btn-default"><router-link to="/food">Cancel</router-link></a>
   </form>
   </div>
 </template>
@@ -155,8 +154,45 @@
   <form v-on:submit="deleteFood">
     <p>The action cannot be undone.</p>
     <button type="submit" class="btn btn-danger">Delete</button>
-    <a class="btn btn-default"><router-link to="/">Cancel</router-link></a>
+    <a class="btn btn-default"><router-link to="/food">Cancel</router-link></a>
   </form>
+  </div>
+</template>
+
+<template id="restaurant">
+  <vue-simple-spinner v-if='loadingRestList'></vue-simple-spinner>
+  <div v-else>
+    <h2>Restaurant - {{ restaurant.name }}</h2>
+    <b>Available Tables: </b>
+    <div>{{ restaurant.totalTables }}</div>
+    <br/>
+    <a class="btn btn-default">
+      <router-link :to="{name: 'restaurant-edit', params: {restaurant_id: restaurant.id}}">
+      Edit Tables
+      </router-link>
+    </a>
+    <br/><br/>
+    <b>Orders:</b>
+    <table class="table">
+      <thead>
+      <tr>
+        <th>Table Number</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th class="col-sm-2">Items</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr v-for="order in restaurant.orders">
+        <td>{{ order.tableNumber }}</td>
+        <td>{{ order.date }}</td>
+        <td>{{ order.status }}</td>
+        <td>
+        <a class="btn btn-default btn-xs"><router-link :to="{name: 'items-view', params: {order_id: order.id}}">View Food Items</router-link></a>
+        </td>
+      </tr>
+      </tbody>
+    </table>
   </div>
 </template>
 
