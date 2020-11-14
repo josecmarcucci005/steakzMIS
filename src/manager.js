@@ -8,7 +8,7 @@ var foods = [
 */
 
 var foods = [];
-var c = {};
+var restaurant = {};
 
 var urlFood = 'https://steakz-0eef.restdb.io/rest/food';
 var urlRest = 'https://steakz-0eef.restdb.io/rest/restaurant';
@@ -55,7 +55,7 @@ function makeAxiosCallGet(url, temp, func) {
 function makeAxiosCallPut(url, obj) {
   try {
     var putUrl = url + '/' + obj._id;
-    axios.put(putUrl, food, {
+    axios.put(putUrl, obj, {
         headers: {
           'content-type': 'application/json',
           'x-apikey': '5f9f1f94231ba42851b4a04b',
@@ -68,6 +68,31 @@ function makeAxiosCallPut(url, obj) {
       })
       .then(function(response) {
         //console.log(JSON.stringify(response));
+      })
+      .catch(function(error) {
+        console.log(error);
+      })
+  } catch (error) {
+    console.log(error)
+  }
+};
+
+function makeAxiosCallPatch(url, id, temp, params, func) {
+  try {
+    var putUrl = url + '/' + id;
+    axios.patch(putUrl, params, {
+        headers: {
+          'content-type': 'application/json',
+          'x-apikey': '5f9f1f94231ba42851b4a04b',
+          'cache-control': 'no-cache'
+        },
+        async: true,
+        crossDomain: true,
+        responseType: 'json',
+        timeout: 30000
+      })
+      .then(function(response) {
+        func(response, temp)
       })
       .catch(function(error) {
         console.log(error);
@@ -237,7 +262,8 @@ var Rest = Vue.extend({
     return {
       restaurant: restaurant,
       searchKey: '',
-      loadingRestList: true
+      loadingRestList: true,
+      showTableAlert: false
     };
   },
   mounted: function() {
@@ -247,9 +273,54 @@ var Rest = Vue.extend({
         temp.restaurant = response.data[0];
         restaurant = temp.restaurant;
 
-        console.log(JSON.stringify(restaurant));
       });
-  }
+  },
+  methods: {
+      updateTables: function() {
+        
+        makeAxiosCallPatch(urlRest, restaurant._id, this, {"totalTables" : restaurant.totalTables}, function(response, temp) {
+          //console.log(JSON.stringify(response));
+
+          temp.showTableAlert = true;
+
+          setTimeout(()=>{
+            temp.showTableAlert = false;
+          },2000);
+        })
+      }
+  }  
+});
+
+var OrderItems = Vue.extend({
+  template: '#order-items',
+  data: function() {
+    return {
+      order: this.findOrderItems(this.$route.params.order_id),
+      totalPrice: this.getTotalPrice(this.$route.params.order_id)
+    };
+  },
+  methods: {
+    findOrderItems : function(orderId) {
+      return this.findOrderKey(orderId);
+    },
+    
+    findOrderKey : function(orderId) {
+      for (var key = 0; key < restaurant.orders.length; key++) {
+        if (restaurant.orders[key].id == orderId) {
+          return restaurant.orders[key];
+        }
+      }
+    },
+
+    getTotalPrice : function(orderId) {
+      var totalPrice = 0;
+      var order = this.findOrderItems(orderId)
+      for (var key = 0; key < order.items.length; key++) {
+        totalPrice += totalPrice + (order.items[key].quantity * order.items[key].price)
+      }
+      return totalPrice;
+    }
+  }  
 });
 
 var router = new VueRouter({
@@ -279,6 +350,11 @@ var router = new VueRouter({
     {
       path: '/restaurant',
       component: Rest
+    },
+    {
+      path: '/restaurant/:order_id/orderView',
+      component: OrderItems,
+      name: 'order-items'
     }
   ]
 });

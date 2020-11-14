@@ -30,21 +30,22 @@
 </nav>
 
 <div class="container-fluid">
-  <div class="row">
-  	<div class="col-sm-3 sidebar">
-          <ul class="nav nav-pills nav-stacked">
-            <li class="active"><a href="#">Foods <span class="sr-only">(current)</span></a></li>
-            <li><a href="#">Reports</a></li>
-            <li><a href="#">Analytics</a></li>
-            <li><a href="#">Export</a></li>
-          </ul>
+  <main id="app">
+    <div class="row">
+      <div class="col-sm-3 sidebar">
+            <ul class="nav nav-pills nav-stacked">
+              <li class="active"><a><router-link to="/food">Food</router-link></a></li>
+              <li><a href="#">Reports</a></li>
+              <li><a href="#">Analytics</a></li>
+              <li><a href="#">Export</a></li>
+            </ul>
+      </div>
+      <div class="col-sm-9 main">
+      
+        <router-view></router-view>
     </div>
-    <div class="col-sm-9 main">
-	  <main id="app">
-	    <router-view></router-view>
-	  </main>
-	</div>
-  </div>
+    </div>
+  </main>
 </div>
 
 <template id="food">
@@ -163,38 +164,81 @@
   <vue-simple-spinner v-if='loadingRestList'></vue-simple-spinner>
   <div v-else>
     <h2>Restaurant - {{ restaurant.name }}</h2>
-    <b>Available Tables: </b>
-    <div>{{ restaurant.totalTables }}</div>
-    <br/>
-    <a class="btn btn-default">
-      <router-link :to="{name: 'restaurant-edit', params: {restaurant_id: restaurant.id}}">
-      Edit Tables
-      </router-link>
-    </a>
+    
+    <div class="row">
+      <div class="col-sm-3">
+        <b>Available Tables: </b>
+        <input type="number" class="form-control" v-model="restaurant.totalTables"/>
+        <br/>
+        <div class="alert alert-success" role="alert" v-if="showTableAlert">
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <strong>Success!</strong> Amount of tables updated.
+        </div>
+        <button type="button" class="btn btn-primary" v-on:click="updateTables">Update Tables</button>
+      </div>
+    </div>
     <br/><br/>
-    <b>Orders:</b>
+    <div class="row">
+      <b>Orders:</b>
+      <table class="table">
+        <thead>
+        <tr>
+          <th>Table Number</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th class="col-sm-2">Items</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="order in restaurant.orders">
+          <td>{{ order.tableNumber }}</td>
+          <td>{{ order.date }}</td>
+          <td>{{ order.status }}</td>
+          <td>
+          <a class="btn btn-default btn-xs"><router-link :to="{name: 'order-items', params: {order_id: order.id}}">View Food Items</router-link></a>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>  
+  </div>
+</template>
+
+<template id="order-items">
+  <div>
+    <h1>Order #{{order.id}} Items</h1>
+    <br/> 
+    <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
+    <a><router-link to="/restaurant">Back to food list</router-link></a>
+    <br/><br/>
     <table class="table">
       <thead>
       <tr>
-        <th>Table Number</th>
-        <th>Date</th>
-        <th>Status</th>
-        <th class="col-sm-2">Items</th>
+        <th>Id</th>
+        <th>Name</th>
+        <th>Quantity</th>
+        <th>Item Price</th>
       </tr>
       </thead>
       <tbody>
-      <tr v-for="order in restaurant.orders">
-        <td>{{ order.tableNumber }}</td>
-        <td>{{ order.date }}</td>
-        <td>{{ order.status }}</td>
-        <td>
-        <a class="btn btn-default btn-xs"><router-link :to="{name: 'items-view', params: {order_id: order.id}}">View Food Items</router-link></a>
-        </td>
+      <tr v-for="item in order.items">
+        <td>{{ item.id }}</td>
+        <td>{{ item.name }}</td>
+        <td>{{ item.quantity }}</td>
+        <td><span class="glyphicon glyphicon-euro" aria-hidden="true"></span> {{ item.price}}</td>
       </tr>
       </tbody>
+      <tfoot>
+        <th></th>
+        <th></th>
+        <th><b>Total Price</b></th>
+        <th><span class="glyphicon glyphicon-euro" aria-hidden="true"></span> {{totalPrice}}</th>
+      </tfoot>
     </table>
   </div>
 </template>
+
+
 
 <!-- partial -->
 <!-- Placed at the end of the document so the pages load faster -->
@@ -211,6 +255,7 @@
 <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
 <script src='https://unpkg.com/vuetify@0.16.9/dist/vuetify.min.js'></script>
 <script src='https://unpkg.com/vue-simple-spinner@1.2.10/dist/vue-simple-spinner.js'></script>
+<script src='https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js'></script>
 <script  src="./manager.js"></script>
 
 </body>
