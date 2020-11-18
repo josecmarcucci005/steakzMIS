@@ -8,7 +8,7 @@ var foods = [
 */
 
 var foods = [];
-var restaurant = {};
+var restaurant = null;
 
 var urlFood = 'https://steakz-0eef.restdb.io/rest/food';
 var urlRest = 'https://steakz-0eef.restdb.io/rest/restaurant';
@@ -294,13 +294,40 @@ var Rest = Vue.extend({
 var OrderItems = Vue.extend({
   template: '#order-items',
   data: function() {
+    var res = this.loadRestaurant();
+
     return {
       order: this.findOrderItems(this.$route.params.order_id),
-      totalPrice: this.getTotalPrice(this.$route.params.order_id)
+      totalPrice: this.getTotalPrice(this.$route.params.order_id),
+      backTo: this.$route.params.back_to,
+      loadingItemsList: res,
     };
   },
+  mounted: function() {
+    console.log(JSON.stringify(restaurant));
+    
+  },
   methods: {
+    loadRestaurant : function() {
+      if (restaurant == null) {
+        makeAxiosCallGet(urlRest, this, function(response, temp) {
+          restaurant = response.data[0];
+
+          temp.order =  temp.findOrderItems(temp.$route.params.order_id);
+          temp.totalPrice = temp.getTotalPrice(temp.$route.params.order_id);
+          temp.backTo =  '/';
+
+          temp.loadingItemsList = false;
+        });
+      } else {
+        return false;
+      }
+      return true;
+    },
     findOrderItems : function(orderId) {
+      if (restaurant == null) {
+        return;
+      }
       return this.findOrderKey(orderId);
     },
     
@@ -313,6 +340,9 @@ var OrderItems = Vue.extend({
     },
 
     getTotalPrice : function(orderId) {
+      if (restaurant == null) {
+        return;
+      }
       var totalPrice = 0;
       var order = this.findOrderItems(orderId)
       for (var key = 0; key < order.items.length; key++) {
@@ -322,6 +352,77 @@ var OrderItems = Vue.extend({
     }
   }  
 });
+
+var Overview = Vue.extend({
+  template: '#overview',
+  data: function() {
+    return {
+      restaurant: restaurant,
+      loadingOverview: true, 
+      lastOrders: []
+    };
+  },
+  mounted: function() {
+    makeAxiosCallGet(urlRest, this, function(response, temp) {
+      temp.loadingOverview = false;
+      temp.restaurant = response.data[0];
+      restaurant = temp.restaurant;
+
+      temp.lastOrders = restaurant.orders;
+
+      temp.lastOrders.sort(temp.sortByProperty('date'));
+
+      temp.lastOrders = temp.lastOrders.slice(0, 9)
+
+      temp.lastOrders.reverse();
+    });
+  },
+  methods: {
+    sortByProperty: function(date) {
+      return function(a, b) {
+        if (a[date] > b[date]) {
+          return 1;
+        }  
+        else if (a[date] < b[date]) {
+          return -1;
+        }
+        return 0;
+      }
+    }
+  }  
+});
+
+Vue.component('pie-chart', {
+	extends: VueChartJs.Pie,
+	data: function () {
+		return {
+			datacollection: {
+				labels: ['Pie 1', 'Pie 2', 'Pie 3', 'Pie 4', 'Pie 5'],
+				datasets: [
+					{
+						backgroundColor: [ '#1E9600', '#99C802', '#FFF200', '#F89403',	'#FF0000' ],
+						data: [1, 2, 3, 4, 5],
+					},
+				],
+			},
+			options: {
+				responsive: true,
+				legend: {
+					display: true,
+					position: 'right',
+				},
+  	 },
+		}
+	},
+	mounted () {
+		// this.chartData is created in the mixin
+		this.renderChart(this.datacollection, this.options)
+	}
+});
+
+var vm = new Vue({ 
+	el: '.app',
+})
 
 var router = new VueRouter({
   routes: [{
@@ -355,14 +456,36 @@ var router = new VueRouter({
       path: '/restaurant/:order_id/orderView',
       component: OrderItems,
       name: 'order-items'
+    },
+    {
+      path: '/',
+      component: Overview
     }
   ]
 });
 
 
 var App = {
+  
 }
 
 new Vue({
+  data: function() {
+    return {
+      menuEle: [{'active':true}, {'active':false}, {'active':false}, {'active':false}],
+    };
+  },
+  methods: {
+    changeClass : function(idx) {
+      for (i=0; i < this.menuEle.length; i++) {
+        if (i == idx) {
+          this.menuEle[i].active = true;
+        } else {
+          this.menuEle[i].active = false;
+        }
+      }
+    }
+  }, 
+  
   router
 }).$mount('#app')

@@ -10,3 +10,8 @@
   width: 100px;
   padding: 5px 5px 0 0;
 }
+
+.nav-pills li.active a{
+  color: #fff;
+  background-color: #337ab7;
+}

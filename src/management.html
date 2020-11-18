@@ -4,6 +4,7 @@
     <meta charset="UTF-8"/>
     <title>Steakz Manager</title>
     <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css'/>
+    <link href="https://unpkg.com/primevue/resources/themes/saga-blue/theme.css " rel="stylesheet">
     <link rel='stylesheet' href='./dashboard.css'/>
 
 </head>
@@ -34,10 +35,10 @@
     <div class="row">
       <div class="col-sm-3 sidebar">
             <ul class="nav nav-pills nav-stacked">
-              <li class="active"><a><router-link to="/food">Food</router-link></a></li>
-              <li><a href="#">Reports</a></li>
-              <li><a href="#">Analytics</a></li>
-              <li><a href="#">Export</a></li>
+              <li v-bind:class="menuEle[0]"><a v-on:click="changeClass(0)"><router-link to="/">Overview</router-link></a></li>
+              <li v-bind:class="menuEle[1]"><a v-on:click="changeClass(1)"><router-link to="/restaurant">Restaurant Admin</router-link></a></li>
+              <li v-bind:class="menuEle[2]"><a v-on:click="changeClass(2)"><router-link to="/food">Food Admin</router-link></a></li>
+              <li v-bind:class="menuEle[3]"><a v-on:click="changeClass(3)"><router-link to="/">Overview</router-link></a></li>
             </ul>
       </div>
       <div class="col-sm-9 main">
@@ -70,6 +71,7 @@
 	  </router-link>
     </a>
   </div>
+  <br/>
   <div class="filters row">
     <div class="form-group col-sm-3">
       <label for="search-element">Food name</label>
@@ -77,33 +79,35 @@
     </div>
   </div>
   <vue-simple-spinner v-if='loadingList'></vue-simple-spinner>
-  <table class="table" v-else>
-    <thead>
-    <tr>
-      <th>Name</th>
-      <th>Description</th>
-      <th>Price</th>
-      <th class="col-sm-2">Actions</th>
-    </tr>
-    </thead>
-    <tbody>
+  <div class="panel panel-default" v-else>
+    <table class="table">
+        <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Price</th>
+          <th class="col-sm-2">Actions</th>
+        </tr>
+        </thead>
+        <tbody>
 
-    <tr v-for="food in filteredFoods">
-      <td>
-        <a><router-link :to="{name: 'food', params: {food_id: food.id}}">{{ food.name }}</router-link></a>
-      </td>
-      <td>{{ food.description }}</td>
-      <td>
-        {{ food.price }}
-        <span class="glyphicon glyphicon-euro" aria-hidden="true"></span>
-      </td>
-      <td>
-	    <a class="btn btn-warning btn-xs"><router-link :to="{name: 'food-edit', params: {food_id: food.id}}">Edit</router-link></a>
-        <a class="btn btn-danger btn-xs"><router-link :to="{name: 'food-delete', params: {food_id: food.id}}">Delete</router-link></a>
-      </td>
-    </tr>
-    </tbody>
-  </table>
+        <tr v-for="food in filteredFoods">
+          <td>
+            <a><router-link :to="{name: 'food', params: {food_id: food.id}}">{{ food.name }}</router-link></a>
+          </td>
+          <td>{{ food.description }}</td>
+          <td>
+            {{ food.price }}
+            <span class="glyphicon glyphicon-euro" aria-hidden="true"></span>
+          </td>
+          <td>
+          <a class="btn btn-warning btn-xs"><router-link :to="{name: 'food-edit', params: {food_id: food.id}}">Edit</router-link></a>
+            <a class="btn btn-danger btn-xs"><router-link :to="{name: 'food-delete', params: {food_id: food.id}}">Delete</router-link></a>
+          </td>
+        </tr>
+        </tbody>
+      </table> 
+    </div> 
 </div></template>
 
 
@@ -179,62 +183,112 @@
     </div>
     <br/><br/>
     <div class="row">
-      <b>Orders:</b>
-      <table class="table">
-        <thead>
-        <tr>
-          <th>Table Number</th>
-          <th>Date</th>
-          <th>Status</th>
-          <th class="col-sm-2">Items</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr v-for="order in restaurant.orders">
-          <td>{{ order.tableNumber }}</td>
-          <td>{{ order.date }}</td>
-          <td>{{ order.status }}</td>
-          <td>
-          <a class="btn btn-default btn-xs"><router-link :to="{name: 'order-items', params: {order_id: order.id}}">View Food Items</router-link></a>
-          </td>
-        </tr>
-        </tbody>
-      </table>
+      <div class="col-sm-12">
+        <div class="panel panel-default">
+          <div class="panel-heading">Orders</div>
+          <table class="table">
+            <thead>
+            <tr>
+              <th>Table Number</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th class="col-sm-2">Items</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="order in restaurant.orders">
+              <td>{{ order.tableNumber }}</td>
+              <td>{{ order.date }}</td>
+              <td>{{ order.status }}</td>
+              <td>
+              <a class="btn btn-default btn-xs"><router-link :to="{name: 'order-items', params: {order_id: order.id, back_to: '/restaurant'}}">View Food Items</router-link></a>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>  
   </div>
 </template>
 
 <template id="order-items">
-  <div>
+  <vue-simple-spinner v-if='loadingItemsList'></vue-simple-spinner>
+  <div v-else>
     <h1>Order #{{order.id}} Items</h1>
     <br/> 
     <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
-    <a><router-link to="/restaurant">Back to food list</router-link></a>
+    <a><router-link :to="{path: backTo}">Back</router-link></a>
     <br/><br/>
-    <table class="table">
-      <thead>
-      <tr>
-        <th>Id</th>
-        <th>Name</th>
-        <th>Quantity</th>
-        <th>Item Price</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr v-for="item in order.items">
-        <td>{{ item.id }}</td>
-        <td>{{ item.name }}</td>
-        <td>{{ item.quantity }}</td>
-        <td><span class="glyphicon glyphicon-euro" aria-hidden="true"></span> {{ item.price}}</td>
-      </tr>
-      </tbody>
-      <tfoot>
-        <th></th>
-        <th></th>
-        <th><b>Total Price</b></th>
-        <th><span class="glyphicon glyphicon-euro" aria-hidden="true"></span> {{totalPrice}}</th>
-      </tfoot>
-    </table>
+    <div class="panel panel-default">
+      <table class="table">
+        <thead>
+        <tr>
+          <th>Id</th>
+          <th>Name</th>
+          <th>Quantity</th>
+          <th>Item Price</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="item in order.items">
+          <td>{{ item.id }}</td>
+          <td>{{ item.name }}</td>
+          <td>{{ item.quantity }}</td>
+          <td><span class="glyphicon glyphicon-euro" aria-hidden="true"></span> {{ item.price}}</td>
+        </tr>
+        </tbody>
+        <tfoot>
+          <th></th>
+          <th></th>
+          <th><b>Total Price</b></th>
+          <th><span class="glyphicon glyphicon-euro" aria-hidden="true"></span> {{totalPrice}}</th>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</template>
+
+<template id="overview">
+  <vue-simple-spinner v-if='loadingOverview'></vue-simple-spinner>
+  <div v-else>
+    <h1>Steakz - Overview</h1>
+    
+    <div class="row">
+      <div class="col-sm-7">
+        <div class="panel panel-default">
+          <div class="panel-heading">Latest Orders</div>
+          <table class="table">
+            <thead>
+            <tr>
+              <th>Order Id</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th class="col-sm-2">Items</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="order in lastOrders">
+              <td>{{ order.id }}</td>
+              <td>{{ order.date }}</td>
+              <td>{{ order.status }}</td>
+              <td>
+              <a class="btn btn-default btn-xs"><router-link :to="{name: 'order-items', params: {order_id: order.id, back_to: '/'}}">View Food Items</router-link></a>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="col-sm-5">
+        <div class="panel panel-default">
+          <div class="panel-heading">Most Popular Food</div>
+          <div class="panel-body">
+            <pie-chart  style="width: 300px; height: 300px" />
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -255,6 +309,8 @@
 <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
 <script src='https://unpkg.com/vuetify@0.16.9/dist/vuetify.min.js'></script>
 <script src='https://unpkg.com/vue-simple-spinner@1.2.10/dist/vue-simple-spinner.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.min.js'></script>
+<script src='https://unpkg.com/vue-chartjs@3.4.0/dist/vue-chartjs.js'></script>
 <script src='https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js'></script>
 <script  src="./manager.js"></script>
 
