@@ -395,13 +395,14 @@ var Overview = Vue.extend({
 Vue.component('pie-chart', {
 	extends: VueChartJs.Pie,
 	data: function () {
-		return {
-			datacollection: {
-				labels: ['Pie 1', 'Pie 2', 'Pie 3', 'Pie 4', 'Pie 5'],
+    return {
+      colors : [ '#1E9600', '#99C802', '#FFF200', '#F89403',	'#FF0000' ],
+      datacollection: {
+				labels: [],
 				datasets: [
 					{
-						backgroundColor: [ '#1E9600', '#99C802', '#FFF200', '#F89403',	'#FF0000' ],
-						data: [1, 2, 3, 4, 5],
+						backgroundColor: [],
+						data: [],
 					},
 				],
 			},
@@ -410,14 +411,83 @@ Vue.component('pie-chart', {
 				legend: {
 					display: true,
 					position: 'right',
-				},
-  	 },
+        } 
+      },
+      restaurant: restaurant,
+      loadingPie: true,
 		}
 	},
 	mounted () {
-		// this.chartData is created in the mixin
-		this.renderChart(this.datacollection, this.options)
-	}
+    // this.chartData is created in the mixin
+    if (restaurant == null) {
+      makeAxiosCallGet(urlRest, this, function(response, temp) {
+        temp.restaurant = response.data[0];
+        restaurant = temp.restaurant;
+        temp.loadingPie = false;
+
+        temp.groupFood();
+
+        temp.renderChart(temp.datacollection, temp.options);
+      });
+    } else {
+      this.loadingPie = false;
+
+      this.groupFood();
+
+      this.renderChart(this.datacollection, this.options);
+    }
+	},
+  methods: {    
+    groupFood: function() {
+      var foodGroup = []; 
+
+      for (i=0; i < restaurant.orders.length; i++) {
+        let order = restaurant.orders[i];
+
+        for (j=0; j < order.items.length; j++ ) {
+          let item = order.items[j];
+
+          let f = foodGroup.find(i => {
+            return i.name == item.name
+          });
+
+          console.log('Here again' + JSON.stringify(f));
+          
+          if (f == null) {
+            f = {name : item.name, quantity : item.quantity}
+            foodGroup.push(f);
+          } else {
+            f.quantity += item.quantity; 
+          }
+        }
+      }
+      foodGroup.sort(this.sortByProperty('quantity')).slice(0, 5);
+
+      let sum = foodGroup.map(o => o.quantity).reduce((a, c) => { return a + c });
+
+      for (i=0; i < foodGroup.length; i++) { 
+        this.datacollection.labels.push(foodGroup[i].name);
+
+        this.datacollection.datasets[0].backgroundColor.push(this.colors[i]);
+        this.datacollection.datasets[0].data.push(foodGroup[i].quantity/sum*100);
+      } 
+
+
+      return foodGroup;
+    },
+
+    sortByProperty: function(quantity) {
+      return function(a, b) {
+        if (a[quantity] > b[quantity]) {
+          return 1;
+        }  
+        else if (a[quantity] < b[quantity]) {
+          return -1;
+        }
+        return 0;
+      }
+    }
+  }
 });
 
 var vm = new Vue({ 

@@ -38,7 +38,6 @@
               <li v-bind:class="menuEle[0]"><a v-on:click="changeClass(0)"><router-link to="/">Overview</router-link></a></li>
               <li v-bind:class="menuEle[1]"><a v-on:click="changeClass(1)"><router-link to="/restaurant">Restaurant Admin</router-link></a></li>
               <li v-bind:class="menuEle[2]"><a v-on:click="changeClass(2)"><router-link to="/food">Food Admin</router-link></a></li>
-              <li v-bind:class="menuEle[3]"><a v-on:click="changeClass(3)"><router-link to="/">Overview</router-link></a></li>
             </ul>
       </div>
       <div class="col-sm-9 main">
@@ -282,9 +281,9 @@
       </div>
       <div class="col-sm-5">
         <div class="panel panel-default">
-          <div class="panel-heading">Most Popular Food</div>
+          <div class="panel-heading">Most Popular Dishes</div>
           <div class="panel-body">
-            <pie-chart  style="width: 300px; height: 300px" />
+            <pie-chart  style="width: 350px; height: 300px" />
           </div>
         </div>
       </div>
