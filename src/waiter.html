@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Steakz Manager</title>
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css'/>
+    <link href="https://unpkg.com/primevue/resources/themes/saga-blue/theme.css " rel="stylesheet">
+    <link rel='stylesheet' href='./dashboard.css'/>
+
+</head>
+<body>
+  <nav class="navbar navbar-inverse navbar-static-top">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="#">Settings</a></li>
+            <li><a href="#">Profile</a></li>
+            <li><a href="#">Help</a></li>
+          </ul>
+          <div class="nav navbar-nav navbar-left"><img src="http://raw.githubusercontent.com/josecmarcucci005/ecommerce_pictures/master/steakz_logo.png"></div>
+        </div>
+      </div>
+</nav>
+
+<div class="container-fluid">
+  <main id="app">
+    <div class="row">
+      <div class="col-sm-3 sidebar">
+            <ul class="nav nav-pills nav-stacked">
+              <li v-bind:class="menuEle[0]"><a v-on:click="changeClass(0)"><router-link to="/">Orders</router-link></a></li>
+              <!--li v-bind:class="menuEle[1]"><a v-on:click="changeClass(1)"><router-link to="/restaurant">Restaurant Admin</router-link></a></li>
+              <li v-bind:class="menuEle[2]"><a v-on:click="changeClass(2)"><router-link to="/food">Food Admin</router-link></a></li-->
+            </ul>
+      </div>
+      <div class="col-sm-9 main">
+      
+        <router-view></router-view>
+    </div>
+    </div>
+  </main>
+</div>
+
+<template id="order">
+<div>
+  <h2>{{ food.name }}</h2>
+  <b>Description: </b>
+  <div>{{ food.description }}</div>
+  <b>Price:</b>
+  <div>{{ food.price }}<span class="glyphicon glyphicon-euro"></span></div>
+  <br/>
+  <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
+  <a><router-link to="/food">Back to food list</router-link></a>
+</div>
+</template>
+
+<template id="order-list"><div>
+  <div class="actions">
+    <a class="btn btn-default" >
+	  <router-link :to="{path: '/order-add'}">
+      <span class="glyphicon glyphicon-plus"></span>
+      Add order
+	  </router-link>
+    </a>
+  </div>
+  <br/>
+  <vue-simple-spinner v-if='loadingList'></vue-simple-spinner>
+  <div v-else class="panel panel-default">
+    <div class="panel-heading">Orders</div>
+    <div v-if='activeOrders.length == 0'>
+        No orders
+    </div>
+    <table v-else class="table">
+      <thead>
+      <tr>
+        <th>Table Number</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th class="col-sm-2">Items</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr v-for="order in activeOrders">
+        <td>{{ order.tableNumber }}</td>
+        <td>{{ order.date }}</td>
+        <td>{{ order.status }}</td>
+        <td>
+        <a class="btn btn-default btn-xs"><router-link :to="{name: 'order-items', params: {order_id: order.id, back_to: '/restaurant'}}">View Food Items</router-link></a>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+</div></template>
+
+<template id="order-items">
+    <vue-simple-spinner v-if='loadingItemsList'></vue-simple-spinner>
+    <div v-else>
+      <h1>Order #{{order.id}} Items</h1>
+      <br/> 
+      <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
+      <a><router-link :to="{path: backTo}">Back</router-link></a>
+      <br/><br/>
+      <div class="panel panel-default">
+        <table class="table">
+          <thead>
+          <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Quantity</th>
+            <th>Item Price</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="item in order.items">
+            <td>{{ item.id }}</td>
+            <td>{{ item.name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td><span class="glyphicon glyphicon-euro" aria-hidden="true"></span> {{ item.price}}</td>
+          </tr>
+          </tbody>
+          <tfoot>
+            <th></th>
+            <th></th>
+            <th><b>Total Price</b></th>
+            <th><span class="glyphicon glyphicon-euro" aria-hidden="true"></span> {{totalPrice}}</th>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </template>
+
+
+<template id="order-add">
+  <div>
+  <h2>Add new food</h2>
+    <div class="form-group">
+      <label for="add-name">Name</label>
+      <input class="form-control" id="add-name" v-model="food.name" required/>
+    </div>
+    <div class="form-group">
+      <label for="add-description">Description</label>
+      <textarea class="form-control" id="add-description" rows="10" v-model="food.description"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="add-price">Price, <span class="glyphicon glyphicon-euro"></span></label>
+      <input type="number" class="form-control" id="add-price" v-model="food.price"/>
+    </div>
+    <button type="button" class="btn btn-primary" v-on:click="createFood">Create</button>
+    <a class="btn btn-default"><router-link to="/food">Cancel</router-link></a>
+  </div>
+</template>
+
+<template id="order-edit">
+  <div>
+  <h2>Edit food</h2>
+  <form v-on:submit="updateFood">
+    <div class="form-group">
+      <label for="edit-name">Name</label>
+      <input class="form-control" id="edit-name" v-model="food.name" required/>
+    </div>
+    <div class="form-group">
+      <label for="edit-description">Description</label>
+      <textarea class="form-control" id="edit-description" rows="3" v-model="food.description"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="edit-price">Price, <span class="glyphicon glyphicon-euro"></span></label>
+      <input type="number" class="form-control" id="edit-price" v-model="food.price"/>
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a class="btn btn-default"><router-link to="/food">Cancel</router-link></a>
+  </form>
+  </div>
+</template>
+
+<template id="order-close">
+  <div>
+  <h2>Delete food {{ food.name }}</h2>
+  <form v-on:submit="deleteFood">
+    <p>The action cannot be undone.</p>
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a class="btn btn-default"><router-link to="/food">Cancel</router-link></a>
+  </form>
+  </div>
+</template>
+
+
+
+
+<!-- partial -->
+<!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
+    <script src="../../dist/js/bootstrap.min.js"></script>
+    <!-- Just to make our placeholder images work. Don't actually copy the next line! -->
+    <script src="../../assets/js/vendor/holder.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
+<script src='https://unpkg.com/vue@2.6.12/dist/vue.js'></script>
+<script src='https://unpkg.com/vue-router@3.4.9/dist/vue-router.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.15.3/axios.min.js'></script>
+<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
+<script src='https://unpkg.com/vuetify@0.16.9/dist/vuetify.min.js'></script>
+<script src='https://unpkg.com/vue-simple-spinner@1.2.10/dist/vue-simple-spinner.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.min.js'></script>
+<script src='https://unpkg.com/vue-chartjs@3.4.0/dist/vue-chartjs.js'></script>
+<script src='https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js'></script>
+<script  src="./waiter.js"></script>
+
+</body>
+</html>
