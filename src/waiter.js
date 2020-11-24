@@ -1,5 +1,5 @@
 
-
+var foods = [];
 var restaurant = null;
 
 var urlFood = 'https://steakz-0eef.restdb.io/rest/food';
@@ -8,7 +8,17 @@ var urlRest = 'https://steakz-0eef.restdb.io/rest/restaurant';
 var loadingList = true;
 var loadingRestList = true;
 
+function findFood(foodId) {
+  return foods[findFoodKey(foodId)];
+};
 
+function findFoodKey(foodId) {
+  for (var key = 0; key < foods.length; key++) {
+    if (foods[key].id == foodId) {
+      return key;
+    }
+  }
+};
 
 function makeAxiosCallGet(url, temp, func) {
   try {
@@ -139,7 +149,11 @@ var List = Vue.extend({
     return {
       restaurant: restaurant,
       loadingList: true,
-      activeOrders: []
+      loadingListFood: true,
+      activeOrders: [],
+      showModal : false,
+      foods: foods,
+      searchKey: ''
     };
   },
   mounted: function() {
@@ -150,7 +164,6 @@ var List = Vue.extend({
         restaurant = temp.restaurant;
         
         temp.activeOrders = restaurant[0].orders.filter((order) => {
-          console.log(order.status)
           return (order.status == 'OPEN' || order.status == 'IN_PROGRESS' || order.status == 'READY');
         })
       });
@@ -161,6 +174,36 @@ var List = Vue.extend({
 
       this.activeOrders.filter((order) => {
         return (order.status == 'OPEN' || order.status == 'IN_PROGRESS' || order.status == 'READY');
+      })
+    }
+
+    if (foods.length == 0) {
+      makeAxiosCallGet(urlFood, this, function(response, temp) {
+        temp.loadingListFood = false;
+        temp.foods = response.data;
+        foods = temp.foods;
+      });
+    } else {
+      this.loadingListFood = false;
+    }
+  },
+  methods: {
+    createOrder : function() {
+      let foodItems = this.foods.filter((food) => {
+        return food.quantity > 0
+      });
+
+      var newOrder = {id: restaurant.orders.length, tableNumber}
+    }
+  },
+  computed: {
+    filteredFoods() {
+      return this.foods.filter((food) => {
+        if (food.quantity == null) {
+          food.quantity = 0;
+        }
+        return food.name.indexOf(this.searchKey) > -1
+        //return !food.name.indexOf(this.searchKey)
       })
     }
   }
@@ -302,6 +345,30 @@ var OrderItems = Vue.extend({
   }  
 });
 
+Vue.component("modal",{
+	props:['name'],
+	template:`
+		<div class="modal fade in modal-active">
+			<div class="modal-dialog modal-lg">
+					<div class="modal-content">
+						<div class="modal-header">
+							<button type="button" @click="$emit('close')" class="close"><span >&times;</span></button>
+							<h4 class="modal-title">
+								{{name}}
+							</h4>
+						</div>
+            <div class="modal-body">
+								<slot></slot>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-default" @click="$emit('close')">Close</button>
+							<button type="button" class="btn btn-primary" @click="createOrder()">Create Order</button>
+						</div>
+				</div>
+			</div>
+		</div>`
+});
+
 var vm = new Vue({ 
 	el: '.app',
 })
@@ -346,7 +413,7 @@ var App = {
 new Vue({
   data: function() {
     return {
-      menuEle: [{'active':true}, {'active':false}, {'active':false}, {'active':false}],
+      menuEle: [{'active':true}, {'active':false}, {'active':false}, {'active':false}]
     };
   },
   methods: {

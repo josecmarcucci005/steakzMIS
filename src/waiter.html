@@ -36,8 +36,6 @@
       <div class="col-sm-3 sidebar">
             <ul class="nav nav-pills nav-stacked">
               <li v-bind:class="menuEle[0]"><a v-on:click="changeClass(0)"><router-link to="/">Orders</router-link></a></li>
-              <!--li v-bind:class="menuEle[1]"><a v-on:click="changeClass(1)"><router-link to="/restaurant">Restaurant Admin</router-link></a></li>
-              <li v-bind:class="menuEle[2]"><a v-on:click="changeClass(2)"><router-link to="/food">Food Admin</router-link></a></li-->
             </ul>
       </div>
       <div class="col-sm-9 main">
@@ -48,33 +46,56 @@
   </main>
 </div>
 
-<template id="order">
-<div>
-  <h2>{{ food.name }}</h2>
-  <b>Description: </b>
-  <div>{{ food.description }}</div>
-  <b>Price:</b>
-  <div>{{ food.price }}<span class="glyphicon glyphicon-euro"></span></div>
-  <br/>
-  <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
-  <a><router-link to="/food">Back to food list</router-link></a>
-</div>
-</template>
-
 <template id="order-list"><div>
   <div class="actions">
-    <a class="btn btn-default" >
-	  <router-link :to="{path: '/order-add'}">
-      <span class="glyphicon glyphicon-plus"></span>
-      Add order
-	  </router-link>
-    </a>
+    <modal v-if="showModal" @close="showModal = false" name="Add Food Items">
+      <vue-simple-spinner v-if='loadingListFood'></vue-simple-spinner>
+      <div v-else>
+        <div class="filters row">
+          <div class="form-group col-sm-3">
+            <label for="search-element">Food name</label>
+            <input v-model="searchKey" class="form-control" id="search-element" requred/>
+          </div>
+        </div>
+        <br/>
+        <div class="panel panel-default">
+          <table class="table">
+              <thead>
+              <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Price</th>
+                <th class="col-sm-2">Table</th>
+                <th class="col-sm-2">Quantity</th>
+              </tr>
+              </thead>
+              <tbody>
+      
+              <tr v-for="food in filteredFoods">
+                <td>{{ food.name }}</td>
+                <td>{{ food.description }}</td>
+                <td>
+                  {{ food.price }}
+                  <span class="glyphicon glyphicon-euro" aria-hidden="true"></span>
+                </td>
+                <td><input type="number" class="form-control" v-model="restaurant.totalTables"/></td>
+                <td>
+                  <input type="number" class="form-control" v-model="food.quantity"/>
+                </td>
+              </tr>
+              </tbody>
+            </table> 
+          </div>
+        </div> 
+   </modal>
+   
+   <button type="button" class="btn btn-default" @click="showModal=true">Add Order</button>
   </div>
   <br/>
   <vue-simple-spinner v-if='loadingList'></vue-simple-spinner>
   <div v-else class="panel panel-default">
     <div class="panel-heading">Orders</div>
-    <div v-if='activeOrders.length == 0'>
+    <div v-if='activeOrders.length == 0' class="panel-body">
         No orders
     </div>
     <table v-else class="table">
@@ -92,7 +113,7 @@
         <td>{{ order.date }}</td>
         <td>{{ order.status }}</td>
         <td>
-        <a class="btn btn-default btn-xs"><router-link :to="{name: 'order-items', params: {order_id: order.id, back_to: '/restaurant'}}">View Food Items</router-link></a>
+        <a class="btn btn-default btn-xs"><router-link :to="{name: 'order-items', params: {order_id: order.id}}">View Order Items</router-link></a>
         </td>
       </tr>
       </tbody>
@@ -106,7 +127,7 @@
       <h1>Order #{{order.id}} Items</h1>
       <br/> 
       <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
-      <a><router-link :to="{path: backTo}">Back</router-link></a>
+      <a><router-link :to="/orders">Back</router-link></a>
       <br/><br/>
       <div class="panel panel-default">
         <table class="table">
@@ -116,17 +137,24 @@
             <th>Name</th>
             <th>Quantity</th>
             <th>Item Price</th>
+            <th>Kitchen Note</th>
           </tr>
           </thead>
           <tbody>
           <tr v-for="item in order.items">
             <td>{{ item.id }}</td>
             <td>{{ item.name }}</td>
-            <td>{{ item.quantity }}</td>
+            <td>
+              <a class="btn btn-warning btn-xs" v-on:click="addFoodItem({item})">+</a>
+              {{ item.quantity }} 
+              <a class="btn btn-danger btn-xs" v-on:click="removeFoodItem({item})">-</a>
+            </td>
             <td><span class="glyphicon glyphicon-euro" aria-hidden="true"></span> {{ item.price}}</td>
+            <td>{{ item.note }}</td>
           </tr>
           </tbody>
           <tfoot>
+            <th></th>
             <th></th>
             <th></th>
             <th><b>Total Price</b></th>
@@ -140,21 +168,52 @@
 
 <template id="order-add">
   <div>
-  <h2>Add new food</h2>
-    <div class="form-group">
-      <label for="add-name">Name</label>
-      <input class="form-control" id="add-name" v-model="food.name" required/>
+    <div class="panel panel-default">
+      <div class="panel-heading">Create Order</div>
+
     </div>
-    <div class="form-group">
-      <label for="add-description">Description</label>
-      <textarea class="form-control" id="add-description" rows="10" v-model="food.description"></textarea>
+    <h2>Create Order</h2>
+    <br/>
+    <div class="filters row">
+      <div class="form-group col-sm-3">
+        <label for="search-element">Search for Food</label>
+        <input v-model="searchKey" class="form-control" id="search-element" requred/>
+      </div>
     </div>
-    <div class="form-group">
-      <label for="add-price">Price, <span class="glyphicon glyphicon-euro"></span></label>
-      <input type="number" class="form-control" id="add-price" v-model="food.price"/>
+    <vue-simple-spinner v-if='loadingList'></vue-simple-spinner>
+    <div class="panel panel-default" v-else>
+      <table class="table">
+          <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Price</th>
+            <th class="col-sm-2">Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+
+          <tr v-for="food in filteredFoods">
+            <td>
+              <a><router-link :to="{name: 'food', params: {food_id: food.id}}">{{ food.name }}</router-link></a>
+            </td>
+            <td>{{ food.description }}</td>
+            <td>
+              {{ food.price }}
+              <span class="glyphicon glyphicon-euro" aria-hidden="true"></span>
+            </td>
+            <td>
+            <a class="btn btn-default btn-xs"><router-link :to="{name: 'food-edit', params: {food_id: food.id}}">Add</router-link></a>
+              <a class="btn btn-danger btn-xs"><router-link :to="{name: 'food-delete', params: {food_id: food.id}}">Delete</router-link></a>
+            </td>
+          </tr>
+          </tbody>
+        </table> 
+      </div> 
     </div>
+
     <button type="button" class="btn btn-primary" v-on:click="createFood">Create</button>
-    <a class="btn btn-default"><router-link to="/food">Cancel</router-link></a>
+    <a class="btn btn-default"><router-link to="/orders">Cancel</router-link></a>
   </div>
 </template>
 
@@ -197,6 +256,7 @@
 <!-- partial -->
 <!-- Placed at the end of the document so the pages load faster -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <script>window.jQuery || document.write('<script src="../../assets/js/vendor/jquery.min.js"><\/script>')</script>
     <script src="../../dist/js/bootstrap.min.js"></script>
     <!-- Just to make our placeholder images work. Don't actually copy the next line! -->
@@ -211,7 +271,7 @@
 <script src='https://unpkg.com/vue-simple-spinner@1.2.10/dist/vue-simple-spinner.js'></script>
 <script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.min.js'></script>
 <script src='https://unpkg.com/vue-chartjs@3.4.0/dist/vue-chartjs.js'></script>
-<script src='https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js'></script>
+<!--script src='https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js'></script-->
 <script  src="./waiter.js"></script>
 
 </body>
