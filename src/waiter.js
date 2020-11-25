@@ -153,26 +153,32 @@ var List = Vue.extend({
       activeOrders: [],
       showModal : false,
       foods: foods,
-      searchKey: ''
+      searchKey: '',
+      tables: [],
+      order: {tableNumber:1}
     };
   },
   mounted: function() {
     if (restaurant == null) {
       makeAxiosCallGet(urlRest, this, function(response, temp) {
         temp.loadingList = false;
-        temp.restaurant = response.data;
+        temp.restaurant = response.data[0];
         restaurant = temp.restaurant;
+
+        temp.tables = [];
+
+        for (i=1; i <= restaurant.totalTables; i++) {
+          temp.tables.push(i);
+        }
         
-        temp.activeOrders = restaurant[0].orders.filter((order) => {
+        temp.activeOrders = restaurant.orders.filter((order) => {
           return (order.status == 'OPEN' || order.status == 'IN_PROGRESS' || order.status == 'READY');
         })
       });
     } else {
       this.loadingList = false;
 
-      this.activeOrders = restaurant.orders;
-
-      this.activeOrders.filter((order) => {
+      this.activeOrders = restaurant.orders.filter((order) => {
         return (order.status == 'OPEN' || order.status == 'IN_PROGRESS' || order.status == 'READY');
       })
     }
@@ -192,8 +198,27 @@ var List = Vue.extend({
       let foodItems = this.foods.filter((food) => {
         return food.quantity > 0
       });
+      this.order.id = restaurant.orders.length+1;
+      this.order.items = foodItems;
+      this.order.date = new Date();
+      this.order.status = 'OPEN'
+      
+      restaurant.orders.push(this.order);
 
-      var newOrder = {id: restaurant.orders.length, tableNumber}
+      console.log(JSON.stringify(restaurant));
+
+      makeAxiosCallPatch(urlRest, restaurant._id, this, {"orders" : restaurant.orders}, function(response, temp) {
+        //console.log(JSON.stringify(response));
+        temp.restaurant = restaurant;
+
+        temp.showModal = false;
+
+        router.go(router.currentRoute);
+      })
+    },
+    onChange: function (event)
+    {
+      this.order.tableNumber = event.srcElement.value;
     }
   },
   computed: {
@@ -287,17 +312,14 @@ var AddOrder = Vue.extend({
 var OrderItems = Vue.extend({
   template: '#order-items',
   data: function() {
-    var res = this.loadRestaurant();
-
     return {
       order: this.findOrderItems(this.$route.params.order_id),
       totalPrice: this.getTotalPrice(this.$route.params.order_id),
-      backTo: this.$route.params.back_to,
-      loadingItemsList: res,
+      loadingItemsList: true
     };
   },
   mounted: function() {
-    
+    this.loadRestaurant();
   },
   methods: {
     loadRestaurant : function() {
@@ -307,14 +329,12 @@ var OrderItems = Vue.extend({
 
           temp.order =  temp.findOrderItems(temp.$route.params.order_id);
           temp.totalPrice = temp.getTotalPrice(temp.$route.params.order_id);
-          temp.backTo =  '/';
 
           temp.loadingItemsList = false;
         });
       } else {
-        return false;
+        this.loadingItemsList = false;
       }
-      return true;
     },
     findOrderItems : function(orderId) {
       if (restaurant == null) {
@@ -362,7 +382,7 @@ Vue.component("modal",{
 						</div>
 						<div class="modal-footer">
 							<button type="button" class="btn btn-default" @click="$emit('close')">Close</button>
-							<button type="button" class="btn btn-primary" @click="createOrder()">Create Order</button>
+							<button type="button" class="btn btn-primary" @click="$emit('create-order')">Create Order</button>
 						</div>
 				</div>
 			</div>

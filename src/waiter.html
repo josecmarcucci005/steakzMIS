@@ -48,9 +48,19 @@
 
 <template id="order-list"><div>
   <div class="actions">
-    <modal v-if="showModal" @close="showModal = false" name="Add Food Items">
+    <modal v-if="showModal" @close="showModal = false" name="Order Details" v-on:create-order="createOrder">
       <vue-simple-spinner v-if='loadingListFood'></vue-simple-spinner>
       <div v-else>
+        <div class="row">
+            <div class="col-sm-3">
+                <label>Choose Table</label>
+                <select selected='1' v-on:change="onChange">
+                    <option v-for="option in tables">
+                    {{ option }}
+                    </option>
+                </select>
+            </div>
+        </div>    
         <div class="filters row">
           <div class="form-group col-sm-3">
             <label for="search-element">Food name</label>
@@ -65,7 +75,6 @@
                 <th>Name</th>
                 <th>Description</th>
                 <th>Price</th>
-                <th class="col-sm-2">Table</th>
                 <th class="col-sm-2">Quantity</th>
               </tr>
               </thead>
@@ -78,7 +87,6 @@
                   {{ food.price }}
                   <span class="glyphicon glyphicon-euro" aria-hidden="true"></span>
                 </td>
-                <td><input type="number" class="form-control" v-model="restaurant.totalTables"/></td>
                 <td>
                   <input type="number" class="form-control" v-model="food.quantity"/>
                 </td>
@@ -89,7 +97,7 @@
         </div> 
    </modal>
    
-   <button type="button" class="btn btn-default" @click="showModal=true">Add Order</button>
+   <button type="button" class="btn btn-default" @click="showModal=true; order={tableNumber:1}">Add Order</button>
   </div>
   <br/>
   <vue-simple-spinner v-if='loadingList'></vue-simple-spinner>
@@ -121,13 +129,14 @@
   </div>
 </div></template>
 
+
 <template id="order-items">
     <vue-simple-spinner v-if='loadingItemsList'></vue-simple-spinner>
     <div v-else>
       <h1>Order #{{order.id}} Items</h1>
       <br/> 
       <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
-      <a><router-link :to="/orders">Back</router-link></a>
+      <a><router-link to="/orders">Back</router-link></a>
       <br/><br/>
       <div class="panel panel-default">
         <table class="table">
