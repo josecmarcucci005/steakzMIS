@@ -35,11 +35,10 @@
     <div class="row">
       <div class="col-sm-3 sidebar">
             <ul class="nav nav-pills nav-stacked">
-              <li v-bind:class="menuEle[0]"><a v-on:click="changeClass(0)"><router-link to="/">Orders</router-link></a></li>
+              <li v-bind:class="menuEle[0]"><a v-on:click="changeClass(0)"><router-link to="/orders">Orders</router-link></a></li>
             </ul>
       </div>
       <div class="col-sm-9 main">
-      
         <router-view></router-view>
     </div>
     </div>
@@ -95,9 +94,9 @@
             </table> 
           </div>
         </div> 
-   </modal>
+    </modal>
    
-   <button type="button" class="btn btn-default" @click="showModal=true; order={tableNumber:1}">Add Order</button>
+   <button type="button" class="btn btn-primary" @click="showModal=true; order={tableNumber:1};">Add Order</button>
   </div>
   <br/>
   <vue-simple-spinner v-if='loadingList'></vue-simple-spinner>
@@ -110,9 +109,10 @@
       <thead>
       <tr>
         <th>Table Number</th>
-        <th>Date</th>
+        <th class="col-sm-2">Date</th>
         <th>Status</th>
-        <th class="col-sm-2">Items</th>
+        <th>Items</th>
+        <th>Actions</th>
       </tr>
       </thead>
       <tbody>
@@ -123,6 +123,11 @@
         <td>
         <a class="btn btn-default btn-xs"><router-link :to="{name: 'order-items', params: {order_id: order.id}}">View Order Items</router-link></a>
         </td>
+        <td>
+          <button type="button" v-if="order.status == 'OPEN'" class="btn btn-success" @click="changeOrderStatus(order, 'IN_PROGRESS')">Send To Kitchen</button>
+          <button type="button" v-if="order.status != 'IN_PROGRESS'" class="btn btn-danger" @click="changeOrderStatus(order, 'CANCEL')">Cancel</button>
+          <button type="button" v-if="order.status == 'READY'" class="btn btn-warning" @click="changeOrderStatus(order, 'CLOSE')">Close</button
+        </td>
       </tr>
       </tbody>
     </table>
@@ -131,22 +136,63 @@
 
 
 <template id="order-items">
-    <vue-simple-spinner v-if='loadingItemsList'></vue-simple-spinner>
+    <modal v-if="showModal" @close="showModal = false" name="Add Food Items" v-on:create-order="createOrder">
+        <vue-simple-spinner v-if='loadingListFood'></vue-simple-spinner>
+        <div v-else>
+          <div class="filters row">
+            <div class="form-group col-sm-3">
+              <label for="search-element">Food name</label>
+              <input v-model="searchKey" class="form-control" id="search-element"/>
+            </div>
+          </div>
+          <br/>
+          <div class="panel panel-default">
+            <table class="table">
+                <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Description</th>
+                  <th>Price</th>
+                  <th class="col-sm-2">Quantity</th>
+                </tr>
+                </thead>
+                <tbody>
+        
+                <tr v-for="food in filteredFoods">
+                  <td>{{ food.name }}</td>
+                  <td>{{ food.description }}</td>
+                  <td>
+                    {{ food.price }}
+                    <span class="glyphicon glyphicon-euro" aria-hidden="true"></span>
+                  </td>
+                  <td>
+                    <input type="number" class="form-control" v-model="food.quantity"/>
+                  </td>
+                </tr>
+                </tbody>
+              </table> 
+            </div>
+          </div> 
+     </modal>
+    <vue-simple-spinner v-else-if='loadingItemsList'></vue-simple-spinner>
     <div v-else>
       <h1>Order #{{order.id}} Items</h1>
       <br/> 
       <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
       <a><router-link to="/orders">Back</router-link></a>
       <br/><br/>
+      <div v-if="order.status == 'OPEN'">
+        <button type="button" class="btn btn-primary" @click="showModal=true">Edit Food Items</button>
+        <br/><br/>
+      </div>
       <div class="panel panel-default">
         <table class="table">
           <thead>
           <tr>
             <th>Id</th>
             <th>Name</th>
-            <th>Quantity</th>
+            <th class="col-sm-2">Quantity</th>
             <th>Item Price</th>
-            <th>Kitchen Note</th>
           </tr>
           </thead>
           <tbody>
@@ -154,16 +200,12 @@
             <td>{{ item.id }}</td>
             <td>{{ item.name }}</td>
             <td>
-              <a class="btn btn-warning btn-xs" v-on:click="addFoodItem({item})">+</a>
-              {{ item.quantity }} 
-              <a class="btn btn-danger btn-xs" v-on:click="removeFoodItem({item})">-</a>
+                {{item.quantity}}
             </td>
             <td><span class="glyphicon glyphicon-euro" aria-hidden="true"></span> {{ item.price}}</td>
-            <td>{{ item.note }}</td>
           </tr>
           </tbody>
           <tfoot>
-            <th></th>
             <th></th>
             <th></th>
             <th><b>Total Price</b></th>

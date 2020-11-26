@@ -44,7 +44,7 @@ function makeAxiosCallGet(url, temp, func) {
   }
 };
 
-function makeAxiosCallPut(url, obj) {
+function makeAxiosCallPut(url, obj, temp, func) {
   try {
     var putUrl = url + '/' + obj._id;
     axios.put(putUrl, obj, {
@@ -59,7 +59,7 @@ function makeAxiosCallPut(url, obj) {
         timeout: 30000
       })
       .then(function(response) {
-        //console.log(JSON.stringify(response));
+        func(response, temp)
       })
       .catch(function(error) {
         console.log(error);
@@ -136,7 +136,7 @@ function makeAxiosCallDelete(url, obj) {
         //console.log(JSON.stringify(response));
       })
       .catch(function(error) {
-        //console.log(error);
+        console.log(error);
       })
   } catch (error) {
     console.log(error)
@@ -178,6 +178,12 @@ var List = Vue.extend({
     } else {
       this.loadingList = false;
 
+      this.tables = [];
+
+      for (i=1; i <= restaurant.totalTables; i++) {
+        this.tables.push(i);
+      }
+
       this.activeOrders = restaurant.orders.filter((order) => {
         return (order.status == 'OPEN' || order.status == 'IN_PROGRESS' || order.status == 'READY');
       })
@@ -190,25 +196,40 @@ var List = Vue.extend({
         foods = temp.foods;
       });
     } else {
+      this.resetFoods;
+
       this.loadingListFood = false;
     }
   },
   methods: {
+    resetFoods : function() {
+      this.foods = foods;
+    },
     createOrder : function() {
       let foodItems = this.foods.filter((food) => {
         return food.quantity > 0
       });
+
+      this.order.items = [];
+
+      for (i=0; i < foodItems.length; i++) {
+        let f = {
+                 name: foodItems[i].name,
+                 price: foodItems[i].price,
+                 description: foodItems[i].description,
+                 id: foodItems[i].id,
+                 quantity: foodItems[i].quantity,
+                }
+        this.order.items.push(f);
+      }
+
       this.order.id = restaurant.orders.length+1;
-      this.order.items = foodItems;
       this.order.date = new Date();
       this.order.status = 'OPEN'
       
       restaurant.orders.push(this.order);
 
-      console.log(JSON.stringify(restaurant));
-
       makeAxiosCallPatch(urlRest, restaurant._id, this, {"orders" : restaurant.orders}, function(response, temp) {
-        //console.log(JSON.stringify(response));
         temp.restaurant = restaurant;
 
         temp.showModal = false;
@@ -219,6 +240,21 @@ var List = Vue.extend({
     onChange: function (event)
     {
       this.order.tableNumber = event.srcElement.value;
+    },
+    changeOrderStatus: function(ord, newStatus) {
+      ord.status = newStatus;
+
+      let idx = this.restaurant.orders.findIndex(x => x.id === ord.id)
+
+      this.restaurant.orders[idx] = ord;
+
+      makeAxiosCallPatch(urlRest, restaurant._id, this, {"orders" : restaurant.orders}, function(response, temp) {
+        temp.restaurant = restaurant;
+
+        temp.activeOrders = restaurant.orders.filter((order) => {
+          return (order.status == 'OPEN' || order.status == 'IN_PROGRESS' || order.status == 'READY');
+        })
+      })
     }
   },
   computed: {
@@ -228,83 +264,7 @@ var List = Vue.extend({
           food.quantity = 0;
         }
         return food.name.indexOf(this.searchKey) > -1
-        //return !food.name.indexOf(this.searchKey)
       })
-    }
-  }
-});
-
-var Order = Vue.extend({
-  template: '#food',
-  data: function() {
-    return {
-      food: findFood(this.$route.params.food_id)
-    };
-  }
-});
-
-var OrderEdit = Vue.extend({
-  template: '#food-edit',
-  data: function() {
-    return {
-      food: findFood(this.$route.params.food_id)
-    };
-  },
-  methods: {
-    updateFood: function() {
-      let food = this.food;
-      foods[findFoodKey(food.id)] = {
-        _id: food._id,
-        id: food.id,
-        name: food.name,
-        description: food.description,
-        price: food.price
-      };
-
-      makeAxiosCallPut(urlFood, food);
-      router.push('/food');
-    }
-  }
-});
-
-var OrderDelete = Vue.extend({
-  template: '#food-delete',
-  data: function() {
-    return {
-      food: findFood(this.$route.params.food_id)
-    };
-  },
-  methods: {
-    deleteFood: function() {
-      foods.splice(findFoodKey(this.$route.params.food_id), 1);
-      makeAxiosCallDelete(urlFood, this.food);
-      router.push('/food');
-    }
-  }
-});
-
-var AddOrder = Vue.extend({
-  template: '#add-food',
-  data: function() {
-    return {
-      food: {
-        name: '',
-        description: '',
-        price: ''
-      }
-    }
-  },
-  methods: {
-    createFood: function() {
-      let food = this.food;
-      makeAxiosCallPush(urlFood, food, router, function(response, food, router) {
-        food.id = response.data.id;
-        food._id = response.data._id;
-
-        foods.push(food);
-
-        router.push('/food');
-      });
     }
   }
 });
@@ -313,9 +273,12 @@ var OrderItems = Vue.extend({
   template: '#order-items',
   data: function() {
     return {
-      order: this.findOrderItems(this.$route.params.order_id),
-      totalPrice: this.getTotalPrice(this.$route.params.order_id),
-      loadingItemsList: true
+      totalPrice: 0,
+      order: {},
+      loadingItemsList: true,
+      foods: foods,
+      showModal : false,
+      searchKey: '',
     };
   },
   mounted: function() {
@@ -327,13 +290,25 @@ var OrderItems = Vue.extend({
         makeAxiosCallGet(urlRest, this, function(response, temp) {
           restaurant = response.data[0];
 
-          temp.order =  temp.findOrderItems(temp.$route.params.order_id);
-          temp.totalPrice = temp.getTotalPrice(temp.$route.params.order_id);
+          temp.order = temp.findOrderItems(temp.$route.params.order_id);
+          temp.getTotalPrice();
 
           temp.loadingItemsList = false;
         });
       } else {
+        this.order = this.findOrderItems(this.$route.params.order_id);
+        this.getTotalPrice();
         this.loadingItemsList = false;
+      }
+
+      if (foods.length == 0) {
+        makeAxiosCallGet(urlFood, this, function(response, temp) {
+          temp.loadingListFood = false;
+          temp.foods = response.data;
+          foods = temp.foods;
+        });
+      } else {
+        this.loadingListFood = false;
       }
     },
     findOrderItems : function(orderId) {
@@ -351,16 +326,74 @@ var OrderItems = Vue.extend({
       }
     },
 
-    getTotalPrice : function(orderId) {
+    getTotalPrice : function() {
       if (restaurant == null) {
         return;
       }
-      var totalPrice = 0;
-      var order = this.findOrderItems(orderId)
-      for (var key = 0; key < order.items.length; key++) {
-        totalPrice += totalPrice + (order.items[key].quantity * order.items[key].price)
+
+      if (this.order == null) {
+        return;
       }
-      return totalPrice;
+
+      this.totalPrice = 0;
+
+      for (key = 0; key < this.order.items.length; key++) {
+        this.totalPrice += (this.order.items[key].quantity * this.order.items[key].price)
+      }
+    },
+    createOrder : function() {
+      let foodItems = this.foods.filter((food) => {
+        return food.quantity > 0
+      });
+
+      for (i=0; i < foodItems.length; i++) {
+        let idx = this.order.items.findIndex(x => x.id === foodItems[i].id)
+
+        if (idx > -1) {
+          this.order.items[idx].quantity = foodItems[i].quantity;
+        } else {
+
+        let f = {
+                 name: foodItems[i].name,
+                 price: foodItems[i].price,
+                 description: foodItems[i].description,
+                 id: foodItems[i].id,
+                 quantity: foodItems[i].quantity,
+                }
+          this.order.items.push(f);
+        }  
+      }
+
+      let idx = restaurant.orders.findIndex(x => x.id === this.order.id)
+
+      restaurant.orders[idx] = this.order;
+
+      makeAxiosCallPut(urlRest, restaurant, this, function(response, temp) {
+        temp.restaurant = response.data[0];
+
+        temp.showModal = false;
+
+        temp.getTotalPrice();
+      })
+    },
+  },
+  computed: {
+    filteredFoods() {
+      return this.foods.filter((food) => {
+        
+        let items = this.order.items.filter((item) => {
+          return item.id == food.id;
+        }) 
+
+        if (items.length > 0) {
+          food.quantity = items[0].quantity;
+        }
+
+        if (food.quantity == null) {
+          food.quantity = 0;
+        }
+        return food.name.indexOf(this.searchKey) > -1
+      })
     }
   }  
 });
@@ -382,7 +415,7 @@ Vue.component("modal",{
 						</div>
 						<div class="modal-footer">
 							<button type="button" class="btn btn-default" @click="$emit('close')">Close</button>
-							<button type="button" class="btn btn-primary" @click="$emit('create-order')">Create Order</button>
+							<button type="button" class="btn btn-primary" @click="$emit('create-order')">Save</button>
 						</div>
 				</div>
 			</div>
@@ -399,26 +432,7 @@ var router = new VueRouter({
       component: List
     },
     {
-      path: '/order/:order_id',
-      component: Order,
-      name: 'order'
-    },
-    {
-      path: '/order-add',
-      component: AddOrder
-    },
-    {
-      path: '/order/:order_id/edit',
-      component: OrderEdit,
-      name: 'order-edit'
-    },
-    {
-      path: '/order/:order_id/delete',
-      component: OrderDelete,
-      name: 'order-delete'
-    },
-    {
-      path: '/restaurant/:order_id/orderView',
+      path: '/orders/:order_id/orderView',
       component: OrderItems,
       name: 'order-items'
     }
