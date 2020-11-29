@@ -159,35 +159,7 @@ var List = Vue.extend({
     };
   },
   mounted: function() {
-    if (restaurant == null) {
-      makeAxiosCallGet(urlRest, this, function(response, temp) {
-        temp.loadingList = false;
-        temp.restaurant = response.data[0];
-        restaurant = temp.restaurant;
-
-        temp.tables = [];
-
-        for (i=1; i <= restaurant.totalTables; i++) {
-          temp.tables.push(i);
-        }
-        
-        temp.activeOrders = restaurant.orders.filter((order) => {
-          return (order.status == 'OPEN' || order.status == 'IN_PROGRESS' || order.status == 'READY');
-        })
-      });
-    } else {
-      this.loadingList = false;
-
-      this.tables = [];
-
-      for (i=1; i <= restaurant.totalTables; i++) {
-        this.tables.push(i);
-      }
-
-      this.activeOrders = restaurant.orders.filter((order) => {
-        return (order.status == 'OPEN' || order.status == 'IN_PROGRESS' || order.status == 'READY');
-      })
-    }
+    this.loadData();
 
     if (foods.length == 0) {
       makeAxiosCallGet(urlFood, this, function(response, temp) {
@@ -196,12 +168,38 @@ var List = Vue.extend({
         foods = temp.foods;
       });
     } else {
-      this.resetFoods;
-
       this.loadingListFood = false;
     }
   },
   methods: {
+    loadData : function() {
+      if (this.showModal == false) {
+        makeAxiosCallGet(urlRest, this, function(response, temp) {
+          temp.loadingList = false;
+          temp.restaurant = response.data[0];
+          restaurant = temp.restaurant;
+
+          temp.tables = [];
+
+          for (i=1; i <= restaurant.totalTables; i++) {
+            temp.tables.push(i);
+          }
+          
+          temp.activeOrders = restaurant.orders.filter((order) => {
+            return (order.status == 'OPEN' || order.status == 'IN_PROGRESS' || order.status == 'READY');
+          })
+
+          temp.timeout = setTimeout(()=>{
+            temp.loadData()
+          },30000);
+
+        })
+      } else {
+        this.timeout = setTimeout(()=>{
+          this.loadData()
+        },30000);
+      }
+    },
     resetFoods : function() {
       this.foods = foods;
     },
@@ -218,7 +216,7 @@ var List = Vue.extend({
                  price: foodItems[i].price,
                  description: foodItems[i].description,
                  id: foodItems[i].id,
-                 quantity: foodItems[i].quantity,
+                 quantity: parseInt(foodItems[i].quantity),
                 }
         this.order.items.push(f);
       }
@@ -255,6 +253,9 @@ var List = Vue.extend({
           return (order.status == 'OPEN' || order.status == 'IN_PROGRESS' || order.status == 'READY');
         })
       })
+    },
+    clearPolling : function() {
+      clearTimeout(this.timeout);
     }
   },
   computed: {
@@ -294,7 +295,7 @@ var OrderItems = Vue.extend({
           temp.getTotalPrice();
 
           temp.loadingItemsList = false;
-        });
+        })
       } else {
         this.order = this.findOrderItems(this.$route.params.order_id);
         this.getTotalPrice();
@@ -342,29 +343,28 @@ var OrderItems = Vue.extend({
       }
     },
     createOrder : function() {
-      let foodItems = this.foods.filter((food) => {
-        return food.quantity > 0
-      });
-
-      for (i=0; i < foodItems.length; i++) {
-        let idx = this.order.items.findIndex(x => x.id === foodItems[i].id)
+      for (i=0; i < foods.length; i++) {
+        let idx = this.order.items.findIndex(x => x.id == foods[i].id)
 
         if (idx > -1) {
-          this.order.items[idx].quantity = foodItems[i].quantity;
-        } else {
-
-        let f = {
-                 name: foodItems[i].name,
-                 price: foodItems[i].price,
-                 description: foodItems[i].description,
-                 id: foodItems[i].id,
-                 quantity: foodItems[i].quantity,
+          if (foods[i].quantity == 0) {
+            this.order.items.splice(idx, idx+1);
+          } else {
+            this.order.items[idx].quantity = parseInt(foods[i].quantity);
+          }
+        } else if (foods[i].quantity > 0) {
+          let f = {
+                 name: foods[i].name,
+                 price: foods[i].price,
+                 description: foods[i].description,
+                 id: foods[i].id,
+                 quantity: parseInt(foods[i].quantity),
                 }
           this.order.items.push(f);
-        }  
+        } 
       }
 
-      let idx = restaurant.orders.findIndex(x => x.id === this.order.id)
+      let idx = restaurant.orders.findIndex(x => x.id == this.order.id)
 
       restaurant.orders[idx] = this.order;
 
@@ -395,7 +395,7 @@ var OrderItems = Vue.extend({
         return food.name.indexOf(this.searchKey) > -1
       })
     }
-  }  
+  } 
 });
 
 Vue.component("modal",{

@@ -121,7 +121,7 @@
         <td>{{ order.date }}</td>
         <td>{{ order.status }}</td>
         <td>
-        <a class="btn btn-default btn-xs"><router-link :to="{name: 'order-items', params: {order_id: order.id}}">View Order Items</router-link></a>
+        <a class="btn btn-default btn-xs" @click="clearPolling();"><router-link :to="{name: 'order-items', params: {order_id: order.id}}">View Order Items</router-link></a>
         </td>
         <td>
           <button type="button" v-if="order.status == 'OPEN'" class="btn btn-success" @click="changeOrderStatus(order, 'IN_PROGRESS')">Send To Kitchen</button>

@@ -304,7 +304,7 @@ var OrderItems = Vue.extend({
     };
   },
   mounted: function() {
-    console.log(JSON.stringify(restaurant));
+    //console.log(JSON.stringify(restaurant));
     
   },
   methods: {
@@ -372,9 +372,9 @@ var Overview = Vue.extend({
 
       temp.lastOrders.sort(temp.sortByProperty('date'));
 
-      temp.lastOrders = temp.lastOrders.slice(0, 9)
-
       temp.lastOrders.reverse();
+
+      temp.lastOrders = temp.lastOrders.slice(0, 9) 
     });
   },
   methods: {
@@ -441,6 +441,8 @@ Vue.component('pie-chart', {
     groupFood: function() {
       var foodGroup = []; 
 
+      console.log(JSON.stringify(restaurant.orders));
+
       for (i=0; i < restaurant.orders.length; i++) {
         let order = restaurant.orders[i];
 
@@ -450,8 +452,6 @@ Vue.component('pie-chart', {
           let f = foodGroup.find(i => {
             return i.name == item.name
           });
-
-          console.log('Here again' + JSON.stringify(f));
           
           if (f == null) {
             f = {name : item.name, quantity : item.quantity}
@@ -461,6 +461,8 @@ Vue.component('pie-chart', {
           }
         }
       }
+      console.log(JSON.stringify(foodGroup));
+
       foodGroup.sort(this.sortByProperty('quantity')).slice(0, 5);
 
       let sum = foodGroup.map(o => o.quantity).reduce((a, c) => { return a + c });
