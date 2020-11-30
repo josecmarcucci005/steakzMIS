@@ -263,19 +263,28 @@ var Rest = Vue.extend({
       restaurant: restaurant,
       searchKey: '',
       loadingRestList: true,
-      showTableAlert: false
+      showTableAlert: false,
+      orders : [],
+      page: 1,
+			perPage: 9,
+      pages: []
     };
   },
   mounted: function() {
-      makeAxiosCallGet(urlRest, this, function(response, temp) {
-
-        temp.loadingRestList = false;
-        temp.restaurant = response.data[0];
-        restaurant = temp.restaurant;
-
-      });
+      
   },
   methods: {
+      loadRestaurant : function() {
+        makeAxiosCallGet(urlRest, this, function(response, temp) {
+
+          temp.loadingRestList = false;
+          temp.restaurant = response.data[0];
+          restaurant = temp.restaurant;
+
+          temp.orders = temp.restaurant.orders;
+  
+        });
+      },
       updateTables: function() {
         
         makeAxiosCallPatch(urlRest, restaurant._id, this, {"totalTables" : restaurant.totalTables}, function(response, temp) {
@@ -287,8 +296,45 @@ var Rest = Vue.extend({
             temp.showTableAlert = false;
           },2000);
         })
+      },
+
+      setPages () {
+        if (restaurant == null) {
+          this.orders = restaurant.orders;
+        }
+        
+        let numberOfPages = Math.ceil(this.orders.length / this.perPage);
+        for (let index = 1; index <= numberOfPages; index++) {
+          this.pages.push(index);
+        }
+      },
+
+      paginate (orders) {
+        let page = this.page;
+        let perPage = this.perPage;
+        let from = (page * perPage) - perPage;
+        let to = (page * perPage);
+        return  orders.slice(from, to);
       }
-  }  
+  },
+  computed: {
+		displayedOrders () {
+			return this.paginate(this.orders);
+		}
+	},
+	created(){
+		this.loadRestaurant();
+  },
+  filters: {
+		trimWords(value){
+			return value.split(" ").splice(0,20).join(" ") + '...';
+		}
+  },
+  watch: {
+		orders () {
+			this.setPages();
+		}
+	},
 });
 
 var OrderItems = Vue.extend({

@@ -2,7 +2,7 @@
 <html lang="en" xmlns:v-on="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <title>Steakz Waiter</title>
+    <title>Steakz Kitchen</title>
     <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css'/>
     <link href="https://unpkg.com/primevue/resources/themes/saga-blue/theme.css " rel="stylesheet">
     <link rel='stylesheet' href='./dashboard.css'/>
@@ -45,60 +45,8 @@
   </main>
 </div>
 
-<template id="order-list"><div>
-  <div class="actions">
-    <modal v-if="showModal" @close="showModal = false" name="Order Details" v-on:create-order="createOrder">
-      <vue-simple-spinner v-if='loadingListFood'></vue-simple-spinner>
-      <div v-else>
-        <div class="row">
-            <div class="col-sm-3">
-                <label>Choose Table</label>
-                <select selected='1' v-on:change="onChange">
-                    <option v-for="option in tables">
-                    {{ option }}
-                    </option>
-                </select>
-            </div>
-        </div>    
-        <div class="filters row">
-          <div class="form-group col-sm-3">
-            <label for="search-element">Food name</label>
-            <input v-model="searchKey" class="form-control" id="search-element" requred/>
-          </div>
-        </div>
-        <br/>
-        <div class="panel panel-default">
-          <table class="table">
-              <thead>
-              <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Price</th>
-                <th class="col-sm-2">Quantity</th>
-              </tr>
-              </thead>
-              <tbody>
-      
-              <tr v-for="food in filteredFoods">
-                <td>{{ food.name }}</td>
-                <td>{{ food.description }}</td>
-                <td>
-                  {{ food.price }}
-                  <span class="glyphicon glyphicon-euro" aria-hidden="true"></span>
-                </td>
-                <td>
-                  <input type="number" class="form-control" v-model="food.quantity"/>
-                </td>
-              </tr>
-              </tbody>
-            </table> 
-          </div>
-        </div> 
-    </modal>
-   
-   <button type="button" class="btn btn-primary" @click="showModal=true; order={tableNumber:1};">Add Order</button>
-  </div>
-  <br/>
+<template id="order-list">
+  <div>
   <vue-simple-spinner v-if='loadingList'></vue-simple-spinner>
   <div v-else class="panel panel-default">
     <div class="panel-heading">Orders</div>
@@ -124,67 +72,24 @@
         <a class="btn btn-default btn-xs" @click="clearPolling();"><router-link :to="{name: 'order-items', params: {order_id: order.id}}">View Order Items</router-link></a>
         </td>
         <td>
-          <button type="button" v-if="order.status == 'OPEN'" class="btn btn-success" @click="changeOrderStatus(order, 'IN_PROGRESS')">Send To Kitchen</button>
-          <button type="button" v-if="order.status == 'OPEN'" class="btn btn-danger" @click="changeOrderStatus(order, 'CANCEL')">Cancel</button>
-          <button type="button" v-if="order.status == 'READY'" class="btn btn-warning" @click="changeOrderStatus(order, 'CLOSE')">Close</button
+          <button type="button" v-if="order.status == 'IN_PROGRESS'" class="btn btn-success" @click="changeOrderStatus(order, 'READY')">Ready</button>
         </td>
       </tr>
       </tbody>
     </table>
   </div>
-</div></template>
+  </div>
+</template>
 
 
 <template id="order-items">
-    <modal v-if="showModal" @close="showModal = false" name="Add Food Items" v-on:create-order="createOrder">
-        <vue-simple-spinner v-if='loadingListFood'></vue-simple-spinner>
-        <div v-else>
-          <div class="filters row">
-            <div class="form-group col-sm-3">
-              <label for="search-element">Food name</label>
-              <input v-model="searchKey" class="form-control" id="search-element"/>
-            </div>
-          </div>
-          <br/>
-          <div class="panel panel-default">
-            <table class="table">
-                <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Description</th>
-                  <th>Price</th>
-                  <th class="col-sm-2">Quantity</th>
-                </tr>
-                </thead>
-                <tbody>
-        
-                <tr v-for="food in filteredFoods">
-                  <td>{{ food.name }}</td>
-                  <td>{{ food.description }}</td>
-                  <td>
-                    {{ food.price }}
-                    <span class="glyphicon glyphicon-euro" aria-hidden="true"></span>
-                  </td>
-                  <td>
-                    <input type="number" class="form-control" v-model="food.quantity"/>
-                  </td>
-                </tr>
-                </tbody>
-              </table> 
-            </div>
-          </div> 
-     </modal>
-    <vue-simple-spinner v-else-if='loadingItemsList'></vue-simple-spinner>
+    <vue-simple-spinner v-if='loadingItemsList'></vue-simple-spinner>
     <div v-else>
       <h1>Order #{{order.id}} Items</h1>
       <br/> 
       <span class="glyphicon glyphicon-arrow-left" aria-hidden="true"></span>
       <a><router-link to="/orders">Back</router-link></a>
       <br/><br/>
-      <div v-if="order.status == 'OPEN'">
-        <button type="button" class="btn btn-primary" @click="showModal=true">Edit Food Items</button>
-        <br/><br/>
-      </div>
       <div class="panel panel-default">
         <table class="table">
           <thead>
@@ -216,9 +121,6 @@
     </div>
   </template>
 
-
-
-
 <!-- partial -->
 <!-- Placed at the end of the document so the pages load faster -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
@@ -238,7 +140,7 @@
 <script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.min.js'></script>
 <script src='https://unpkg.com/vue-chartjs@3.4.0/dist/vue-chartjs.js'></script>
 <!--script src='https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js'></script-->
-<script  src="./waiter.js"></script>
+<script  src="./kitchen.js"></script>
 
 </body>
 </html>

@@ -19,3 +19,16 @@
 .modal-active{
 	display:block;
 }
+
+button.page-link {
+	display: inline-block;
+}
+button.page-link {
+    font-size: 14px;
+    color: #337ab7;
+    font-weight: 500;
+}
+.offset{
+  width: 500px !important;
+  margin: 14px auto;  
+}
